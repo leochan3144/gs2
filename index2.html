@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常識科精讀字卡 (30題加強版)</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 及 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 3D 翻轉效果 */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* 防止選取文字影響體驗 */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* 自定義捲軸 (隱藏但可捲動) */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 to-teal-100 min-h-screen font-sans text-gray-800 selection:bg-emerald-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // 30 題溫習資料 (根據課本重點整理)
+        const flashcardsData = [
+            // --- 綠化與社區衞生 ---
+            { id: 1, category: "社區衞生", question: "哪個政府部門主要負責街道潔淨和管理垃圾站？", answer: "食物環境衞生署" },
+            { id: 2, category: "社區衞生", question: "我們應如何對待遊樂場等公共設施？", answer: "發揮公德心，不塗鴉、不破壞。" },
+            { id: 3, category: "社區衞生", question: "當發現社區有環境衞生問題時，我們應該怎樣做？", answer: "向相關的政府部門投訴。" },
+            { id: 4, category: "社區衞生", question: "為甚麼在社區內要避免製造噪音？", answer: "因為過大的噪音會影響居民的日常生活和健康。" },
+            { id: 5, category: "社區衞生", question: "政府如何管制社區的噪音問題？", answer: "透過立法管制。\n(例如限制建築工程打樁的時間)" },
+            { id: 6, category: "綠化環境", question: "在社區栽種植物有甚麼好處？\n(試舉出兩項)", answer: "1. 美化環境\n2. 淨化空氣\n3. 提供遮蔭休憩的地方" },
+            { id: 7, category: "綠化環境", question: "除了政府，還有誰會參與屋邨或私人屋苑的綠化工作？", answer: "私人機構 或 物業管理公司。" },
+            { id: 8, category: "綠化環境", question: "在郊外郊遊時，我們應如何保護林木？", answer: "我們不能留下火種，以免引起山火。" },
+            { id: 9, category: "綠化環境", question: "作為市民，我們在綠化環境上有甚麼責任？", answer: "愛護花草樹木，不採摘公園裏的花朵。" },
+            { id: 10, category: "社區衞生", question: "保持社區環境衞生和安靜，是誰的責任？", answer: "政府和全體居民都有責任。" },
+
+            // --- 節約能源 ---
+            { id: 11, category: "節約能源", question: "日常生活中使用的電器和先進設備，需要甚麼來推動？", answer: "需要「能源」（例如電力）來推動。" },
+            { id: 12, category: "節約能源", question: "煤、石油、天然氣這些地球資源，統稱為什麼？", answer: "化石燃料。" },
+            { id: 13, category: "節約能源", question: "我們常用的能源（例如電力），主要來自哪裏？", answer: "主要來自燃燒化石燃料。" },
+            { id: 14, category: "節約能源", question: "大量燃燒化石燃料會對環境帶來甚麼壞處？", answer: "會排放廢氣，破壞環境，造成空氣污染。" },
+            { id: 15, category: "節約能源", question: "如果我們不加節制地開採化石燃料，最終會有什麼後果？", answer: "這些地球資源終有一天會被耗盡。" },
+            { id: 16, category: "節約能源", question: "為了保護地球資源，我們應該養成甚麼生活習慣？", answer: "節約能源的習慣。" },
+            { id: 17, category: "節約能源", question: "試舉出一個在「學校」節約能源的方法。", answer: "離開課室前，關掉電燈和風扇 / 善用自然光。" },
+            { id: 18, category: "節約能源", question: "試舉出一個在「家中」節約能源的方法。", answer: "睡覺時把冷氣機設定時間掣 / 調高冷氣溫度。" },
+            { id: 19, category: "節約能源", question: "出外時，我們可以怎樣做來節約能源？", answer: "盡量乘搭公共交通工具。" },
+            { id: 20, category: "節約能源", question: "購買電器時，我們應選擇附有甚麼標籤的產品？", answer: "能源標籤 (級別越高越慳電)。" },
+
+            // --- 減少廢物 ---
+            { id: 21, category: "減少廢物", question: "如果我們經常購買不需要的物品，會造成甚麼後果？", answer: "會造成浪費資源，並產生大量家居廢物。" },
+            { id: 22, category: "減少廢物", question: "我們日常生活中丟棄的家居廢物，最終會送到哪裏？", answer: "堆填區。" },
+            { id: 23, category: "減少廢物", question: "隨着廢物數量持續增加，香港的堆填區正面臨甚麼嚴峻危機？", answer: "面臨「飽和」的危機。" },
+            { id: 24, category: "減少廢物", question: "要減少廢物和善用資源，最有效的方法是實踐甚麼原則？", answer: "「環保四用」(4Rs) 原則。" },
+            { id: 25, category: "減少廢物", question: "請說出「環保四用」(4Rs) 的四個原則。", answer: "1. 減少使用 (Reduce)\n2. 替代使用 (Replace)\n3. 廢物利用 (Reuse)\n4. 循環再造 (Recycle)" },
+            { id: 26, category: "減少廢物", question: "不購買過度包裝的產品，屬於哪一項環保原則？", answer: "減少使用 (Reduce)。" },
+            { id: 27, category: "減少廢物", question: "購物時自備環保袋代替索取膠袋，屬於哪一項環保原則？", answer: "替代使用 (Replace)。" },
+            { id: 28, category: "減少廢物", question: "把用完的果醬玻璃樽清洗後用來裝小物件，屬於哪一項環保原則？", answer: "廢物利用 (Reuse)。" },
+            { id: 29, category: "減少廢物", question: "把廢紙放入回收箱加工製成新紙，屬於哪一項環保原則？", answer: "循環再造 (Recycle)。" },
+            { id: 30, category: "減少廢物", question: "把膠樽和鋁罐放進回收箱前，我們必須先做甚麼步驟？", answer: "移除樽蓋、招紙，並清洗乾淨才放入回收箱。" }
+        ];
+
+        // SVG 圖示組件
+        const Icons = {
+            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>,
+            Question: () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            Left: () => <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            Right: () => <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            Shuffle: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>,
+            Tap: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 10l-4 4 4 4"/><path d="M14 14l4-4-4-4"/><circle cx="12" cy="12" r="2"/></svg>
+        };
+
+        const App = () => {
+            const [cards, setCards] = useState(flashcardsData);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [filter, setFilter] = useState("全部");
+
+            // 處理分類篩選
+            useEffect(() => {
+                let filtered = flashcardsData;
+                if (filter !== "全部") {
+                    filtered = flashcardsData.filter(card => card.category === filter || (filter==="社區衞生" && card.category==="綠化環境"));
+                    // 將社區衞生和綠化環境歸類在一起方便溫習
+                    if (filter === "社區與綠化") {
+                        filtered = flashcardsData.filter(card => card.category === "社區衞生" || card.category === "綠化環境");
+                    }
+                }
+                setCards(filtered);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+            }, [filter]);
+
+            const handleNext = useCallback(() => {
+                setIsFlipped(false);
+                setTimeout(() => {
+                    setCurrentIndex((prev) => (prev + 1) % cards.length);
+                }, 150);
+            }, [cards.length]);
+
+            const handlePrev = useCallback(() => {
+                setIsFlipped(false);
+                setTimeout(() => {
+                    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
+                }, 150);
+            }, [cards.length]);
+
+            const handleFlip = useCallback(() => {
+                setIsFlipped((prev) => !prev);
+            }, []);
+
+            const handleShuffle = () => {
+                setIsFlipped(false);
+                setTimeout(() => {
+                    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+                    setCards(shuffled);
+                    setCurrentIndex(0);
+                }, 150);
+            };
+
+            // 鍵盤快捷鍵支援
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === 'ArrowRight') {
+                        handleNext();
+                    } else if (e.key === 'ArrowLeft') {
+                        handlePrev();
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault(); // 防止空白鍵往下捲動網頁
+                        handleFlip();
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [handleNext, handlePrev, handleFlip]);
+
+            // 獲取分類顏色
+            const getCategoryStyle = (cat) => {
+                if(cat === "社區衞生" || cat === "綠化環境") return { tag: "bg-blue-100 text-blue-700", border: "border-blue-400", bgBack: "bg-blue-600 border-blue-600" };
+                if(cat === "節約能源") return { tag: "bg-amber-100 text-amber-700", border: "border-amber-400", bgBack: "bg-amber-500 border-amber-500" };
+                if(cat === "減少廢物") return { tag: "bg-emerald-100 text-emerald-700", border: "border-emerald-400", bgBack: "bg-emerald-600 border-emerald-600" };
+                return { tag: "bg-gray-100 text-gray-700", border: "border-gray-400", bgBack: "bg-gray-600 border-gray-600" };
+            };
+
+            const filters = ["全部", "社區與綠化", "節約能源", "減少廢物"];
+
+            if (cards.length === 0) return null;
+
+            const currentCard = cards[currentIndex];
+            const styles = getCategoryStyle(currentCard.category);
+            const progressPercentage = ((currentIndex + 1) / cards.length) * 100;
+
+            return (
+                <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col min-h-screen no-select">
+                    {/* 標題區域 */}
+                    <header className="mb-6 text-center">
+                        <h1 className="text-3xl md:text-4xl font-extrabold text-teal-800 mb-2 flex items-center justify-center gap-3">
+                            <span className="text-teal-600"><Icons.Book /></span>
+                            常識科必讀字卡
+                        </h1>
+                        <p className="text-teal-600 font-medium">單元二：珍惜資源與環境保護 (共30題)</p>
+                        
+                        {/* 篩選按鈕 */}
+                        <div className="mt-6 flex flex-wrap justify-center gap-2">
+                            {filters.map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f)}
+                                    className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                                        filter === f 
+                                        ? "bg-teal-700 text-white shadow-lg transform scale-105" 
+                                        : "bg-white text-teal-700 border-2 border-teal-100 hover:bg-teal-50"
+                                    }`}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                    </header>
+
+                    {/* 進度條 */}
+                    <div className="w-full max-w-lg mx-auto mb-6">
+                        <div className="flex justify-between text-xs font-bold text-teal-700 mb-1 px-1">
+                            <span>進度</span>
+                            <span>{currentIndex + 1} / {cards.length}</span>
+                        </div>
+                        <div className="w-full bg-white rounded-full h-3 shadow-inner overflow-hidden border border-teal-100">
+                            <div 
+                                className="bg-teal-500 h-3 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {/* 卡片區域 */}
+                    <div className="flex-1 flex flex-col items-center justify-center w-full mt-2">
+                        {/* 翻轉卡片容器 */}
+                        <div 
+                            className="relative w-full max-w-lg h-96 md:h-80 cursor-pointer perspective-1000 group"
+                            onClick={handleFlip}
+                        >
+                            <div className={`w-full h-full relative transition-transform duration-500 transform-style-3d shadow-2xl rounded-3xl ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                
+                                {/* 卡片正面 (問題) */}
+                                <div className={`absolute inset-0 backface-hidden bg-white border-t-8 rounded-3xl p-6 md:p-8 flex flex-col justify-center items-center text-center ${styles.border}`}>
+                                    <span className={`absolute top-5 left-5 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm ${styles.tag}`}>
+                                        {currentCard.category}
+                                    </span>
+                                    
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-6 mt-4 shadow-inner">
+                                        <span className="text-gray-400"><Icons.Question /></span>
+                                    </div>
+                                    
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-relaxed whitespace-pre-line px-2">
+                                        {currentCard.question}
+                                    </h2>
+                                    
+                                    <p className="absolute bottom-5 text-gray-400 text-sm flex items-center gap-1.5 animate-bounce">
+                                        <Icons.Tap />
+                                        點擊卡片翻看答案
+                                    </p>
+                                </div>
+
+                                {/* 卡片背面 (答案) */}
+                                <div className={`absolute inset-0 backface-hidden rounded-3xl p-6 md:p-8 flex flex-col justify-center items-center text-center rotate-y-180 text-white border-4 shadow-inner ${styles.bgBack}`}>
+                                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6 mt-4 backdrop-blur-sm">
+                                        <Icons.Check />
+                                    </div>
+                                    
+                                    <h2 className="text-2xl md:text-3xl font-bold leading-relaxed whitespace-pre-line px-2 drop-shadow-md">
+                                        {currentCard.answer}
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 控制按鈕 */}
+                        <div className="flex items-center justify-center gap-4 mt-10 w-full max-w-lg">
+                            <button 
+                                onClick={handlePrev}
+                                className="p-4 bg-white text-teal-700 rounded-full shadow-lg hover:bg-teal-50 hover:scale-105 active:scale-95 transition-all border border-teal-100"
+                                title="上一題 (鍵盤左箭頭)"
+                            >
+                                <Icons.Left />
+                            </button>
+
+                            <button 
+                                onClick={handleShuffle}
+                                className="px-8 py-4 bg-white text-teal-800 font-extrabold rounded-2xl shadow-lg hover:bg-teal-50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-teal-100"
+                            >
+                                <Icons.Shuffle />
+                                隨機打亂
+                            </button>
+
+                            <button 
+                                onClick={handleNext}
+                                className="p-4 bg-white text-teal-700 rounded-full shadow-lg hover:bg-teal-50 hover:scale-105 active:scale-95 transition-all border border-teal-100"
+                                title="下一題 (鍵盤右箭頭)"
+                            >
+                                <Icons.Right />
+                            </button>
+                        </div>
+                        
+                        <div className="mt-4 text-xs text-teal-600/70 font-medium">
+                            💡 提示：您可以使用鍵盤的 ⬅️ ➡️ 方向鍵切換，空白鍵翻轉。
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
